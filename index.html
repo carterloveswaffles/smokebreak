@@ -1,0 +1,678 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<title>Smoke Break | Podiums</title>
+<meta name="description" content="Woogly Boogly is on his smoke break. Don't click." />
+<meta property="og:title" content="don't click this" />
+<meta property="og:description" content="woogly boogly is on his smoke break." />
+<meta name="theme-color" content="#000000" />
+<link rel="icon" href="favicon.png" type="image/png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#000; --fg:#fff; --muted:#a6a6a6; --card:#0f0f0f; --border:#2e2e2e; --input:#1f1f1f;
+  --cream:#fff6dc; --navy1:#000080; --navy2:#1084d0; --danger:#ff4d4d; --leaf:#7dff8a;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--fg);font-family:Outfit,system-ui,sans-serif;overflow:hidden;overscroll-behavior:none}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom))}
+.screen.on{display:flex}
+.fade-in{animation:fadeIn .6s ease both}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ---------- gate (joinpodiums "you found us" style) ---------- */
+#gate{cursor:pointer;text-align:center;gap:28px}
+#gate .logo{width:96px;height:96px;border-radius:24px;background:#151515;display:grid;place-items:center;box-shadow:0 0 0 1px #222}
+#gate .logo img{width:64px;height:64px}
+#gate h1{font-weight:800;font-size:clamp(30px,8.5vw,44px);letter-spacing:-.03em;line-height:1.05;max-width:12ch}
+#gate p{color:#7a7a7a;font-size:17px;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+
+/* ---------- game ---------- */
+#game{justify-content:flex-start;padding-top:max(14px,env(safe-area-inset-top))}
+#stageWrap{position:absolute;inset:0;overflow:hidden}
+#stage{position:absolute;inset:0;transition:filter 1.2s ease}
+#wiz{position:absolute;left:50%;bottom:calc(150px + env(safe-area-inset-bottom));height:min(56vh,118vw);transform:translateX(-50%);image-rendering:auto;pointer-events:none;filter:drop-shadow(0 18px 24px rgba(0,0,0,.6))}
+#floor{position:absolute;left:0;right:0;bottom:calc(150px + env(safe-area-inset-bottom));height:1px;background:linear-gradient(90deg,transparent,#222 20%,#222 80%,transparent)}
+#smoke{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#haze{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 40%,rgba(200,220,200,.0),rgba(170,190,170,.55));opacity:0;transition:opacity 1.5s ease}
+.wobble{animation:wob 7s ease-in-out infinite}
+@keyframes wob{0%,100%{transform:rotate(0) scale(1)}25%{transform:rotate(.5deg) scale(1.01)}75%{transform:rotate(-.5deg) scale(1.005)}}
+.shake{animation:shake .45s linear}
+@keyframes shake{10%,90%{transform:translate(-2px,1px)}20%,80%{transform:translate(5px,-2px)}30%,50%,70%{transform:translate(-8px,3px)}40%,60%{transform:translate(8px,-3px)}}
+
+/* HUD */
+#hud{position:relative;z-index:5;width:100%;max-width:440px;padding-right:44px;display:flex;flex-direction:column;gap:8px;opacity:0;transition:opacity .4s}
+#hud.on{opacity:1}
+.row{display:grid;grid-template-columns:76px 1fr 38px;align-items:center;gap:8px;font-weight:700;font-size:13px;letter-spacing:.06em}
+.row .num{text-align:right;font-variant-numeric:tabular-nums;font-size:15px}
+.bar{position:relative;height:14px;border-radius:99px;background:#161616;box-shadow:inset 0 0 0 1px #2a2a2a;overflow:hidden}
+.fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:99px;background:linear-gradient(90deg,#3a3a3a,#d9d9d9)}
+#youFill{background:linear-gradient(90deg,#2b6f37,var(--leaf))}
+#danger{position:absolute;top:0;bottom:0;right:0;width:10%;background:repeating-linear-gradient(-45deg,rgba(255,77,77,.55) 0 5px,rgba(255,77,77,.2) 5px 10px)}
+#tick{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;left:0;opacity:0;box-shadow:0 0 6px #fff}
+#dots{display:flex;gap:6px;justify-content:center;margin-top:2px}
+#dots i{width:7px;height:7px;border-radius:50%;background:#333}
+#dots i.won{background:var(--leaf)} #dots i.cur{background:#fff}
+#tier{position:absolute;z-index:7;left:50%;bottom:calc(170px + env(safe-area-inset-bottom));transform:translateX(-50%);font:900 30px/1 Outfit;letter-spacing:-.01em;white-space:nowrap;text-shadow:0 3px 0 #000,0 0 24px rgba(0,0,0,.9);pointer-events:none;opacity:0}
+#tier.pop{animation:tierpop .35s cubic-bezier(.2,1.8,.4,1) both}
+@keyframes tierpop{0%{opacity:0;transform:translateX(-50%) scale(.5) rotate(-4deg)}100%{opacity:1;transform:translateX(-50%) scale(1) rotate(-4deg)}}
+
+/* Win98 speech window */
+#bubble{position:absolute;z-index:6;left:50%;top:calc(max(14px,env(safe-area-inset-top)) + 92px);transform:translateX(-50%);width:min(92vw,400px);background:var(--cream);color:#111;border:2px solid;border-color:#fff #404040 #404040 #fff;box-shadow:1px 1px 0 #000,4px 6px 0 rgba(0,0,0,.4);opacity:0;transition:opacity .2s}
+#bubble.on{opacity:1}
+#bubble .tb{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(90deg,var(--navy1),var(--navy2));color:#fff;font:700 12px Tahoma,Verdana,sans-serif;padding:3px 4px 3px 6px}
+#bubble .tb b{width:16px;height:14px;background:#c0c0c0;color:#000;border:1px solid;border-color:#fff #404040 #404040 #fff;font:700 10px/12px Tahoma,sans-serif;text-align:center}
+#bubble .tx{padding:12px 14px 14px;font:600 19px/1.3 Outfit,sans-serif;min-height:56px}
+
+/* hold button */
+#holdWrap{position:absolute;z-index:7;left:0;right:0;bottom:calc(22px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:10px;opacity:0;pointer-events:none;transition:opacity .3s}
+#holdWrap.on{opacity:1;pointer-events:auto}
+#hold{width:108px;height:108px;border-radius:50%;border:0;background:radial-gradient(circle at 50% 40%,#2a2a2a,#0c0c0c);box-shadow:0 0 0 2px #333,0 10px 30px rgba(0,0,0,.7);color:#fff;font:800 15px/1.05 Outfit;letter-spacing:.04em;touch-action:none;transition:transform .12s,box-shadow .2s}
+#hold.down{transform:scale(.93);box-shadow:0 0 0 2px var(--leaf),0 0 34px rgba(255,120,30,.55)}
+#hint{font-size:13px;color:var(--muted);text-align:center}
+
+#stamp{position:absolute;z-index:8;left:50%;top:44%;transform:translate(-50%,-50%) scale(.6) rotate(-6deg);font:900 clamp(34px,11vw,56px)/1 Outfit;letter-spacing:-.02em;text-align:center;opacity:0;pointer-events:none;text-shadow:0 4px 0 #000,0 0 30px rgba(0,0,0,.8);white-space:nowrap}
+#stamp.pop{animation:stamp 1.5s cubic-bezier(.2,1.6,.4,1) both}
+#stamp small{display:block;font-size:.38em;font-weight:700;margin-top:8px;color:#ddd;letter-spacing:.02em}
+@keyframes stamp{0%{opacity:0;transform:translate(-50%,-50%) scale(.5) rotate(-6deg)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.06) rotate(-6deg)}80%{opacity:1;transform:translate(-50%,-50%) scale(1) rotate(-6deg)}100%{opacity:0;transform:translate(-50%,-50%) scale(1) rotate(-6deg)}}
+
+#soundPill{position:fixed;z-index:20;left:50%;transform:translateX(-50%);bottom:calc(64px + env(safe-area-inset-bottom));padding:12px 20px;border-radius:99px;background:#161616;border:1px solid #333;font-size:15px;font-weight:600;color:#ddd;white-space:nowrap;pointer-events:none;animation:pulse 2s ease-in-out infinite}
+#master{position:fixed;z-index:40;left:12px;bottom:calc(14px + env(safe-area-inset-bottom));height:40px;padding:0 16px;border-radius:99px;border:1px solid #444;background:#1b1b1b;color:#fff;font:700 14px Outfit;display:none}
+#mute{position:fixed;z-index:20;right:12px;top:max(10px,env(safe-area-inset-top));width:36px;height:36px;border-radius:50%;border:0;background:#141414;color:#bbb;font-size:16px;display:none}
+
+/* ---------- walkthrough ---------- */
+#walk{justify-content:flex-start;gap:0}
+#walk .phone{position:relative;margin-top:calc(max(14px,env(safe-area-inset-top)) + 150px);height:min(52vh,108vw);aspect-ratio:600/1300;border-radius:22px;overflow:hidden;box-shadow:0 0 0 1px #2a2a2a,0 20px 60px rgba(0,0,0,.8);background:#111}
+#walk .phone img{width:100%;height:100%;object-fit:cover;display:block}
+#walkWiz{position:absolute;left:-18px;bottom:calc(10px + env(safe-area-inset-bottom));height:min(34vh,72vw);pointer-events:none}
+#walkBubble{top:calc(max(14px,env(safe-area-inset-top)) + 10px)!important}
+#next{position:absolute;right:16px;bottom:calc(26px + env(safe-area-inset-bottom));height:52px;padding:0 26px;border-radius:99px;border:0;background:#fff;color:#000;font:700 17px Outfit}
+
+/* ---------- chooser (joinpodiums style) ---------- */
+#choose,#ios,#android{gap:18px;text-align:center}
+.h2{font-weight:800;font-size:clamp(28px,8vw,38px);letter-spacing:-.03em}
+.sub{color:var(--muted);font-size:16px;margin-top:-8px}
+.cards{display:grid;gap:12px;width:100%;max-width:380px;margin-top:10px}
+.pick{display:flex;align-items:center;gap:14px;padding:18px;border-radius:20px;background:var(--card);border:1px solid var(--border);color:#fff;text-align:left;font:600 18px Outfit}
+.pick span{font-size:28px} .pick small{display:block;color:var(--muted);font-weight:400;font-size:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:56px;padding:0 28px;border-radius:99px;border:0;background:#fff;color:#000;font:700 18px Outfit;text-decoration:none;width:100%;max-width:340px}
+.ghost{background:none;border:0;color:var(--muted);font:500 15px Outfit;text-decoration:underline;margin-top:4px}
+#ios .icon{width:88px;height:88px;border-radius:22px;background:#151515;display:grid;place-items:center}
+#ios .icon img{width:60px}
+form{width:100%;max-width:380px;display:flex;flex-direction:column;gap:14px;text-align:left}
+label{font-size:14px;font-weight:500;color:#ddd}
+input,textarea{width:100%;margin-top:6px;height:50px;border-radius:14px;border:1px solid var(--border);background:var(--input);color:#fff;padding:0 14px;font:400 16px Outfit;-webkit-user-select:text;user-select:text}
+textarea{height:84px;padding:12px 14px;resize:none}
+.fine{font-size:12px;color:#777;text-align:center}
+#toast{position:fixed;z-index:30;left:50%;bottom:30px;transform:translateX(-50%);background:#1b1b1b;border:1px solid #333;padding:12px 16px;border-radius:14px;font-size:14px;display:none;max-width:90vw}
+</style>
+</head>
+<body>
+
+<!-- 0. gate -->
+<section id="gate" class="screen">
+  <div class="logo fade-in"><img src="img/podiums-logo.png" alt=""></div>
+  <h1 class="fade-in">you weren't supposed to click that</h1>
+  <p>Tap to continue</p>
+</section>
+
+<!-- 1. game -->
+<section id="game" class="screen">
+  <div id="stageWrap"><div id="stage">
+    <div id="floor"></div>
+    <img id="wiz" alt="">
+    <canvas id="smoke"></canvas>
+    <div id="haze"></div>
+  </div></div>
+  <div id="hud">
+    <div class="row" id="hisTube"><span>WOOGLY</span><div class="bar"><div class="fill" id="hisFill"></div></div><span class="num" id="hisNum">0</span></div>
+    <div class="row" id="youTube"><span>YOU</span><div class="bar"><div id="danger"></div><div class="fill" id="youFill"></div><div id="tick"></div></div><span class="num" id="youNum">0</span></div>
+    <div id="dots"><i></i><i></i><i></i></div>
+  </div>
+  <div id="tier"></div>
+  <div id="bubble"><div class="tb"><span>woogly.exe</span><b>×</b></div><div class="tx" id="btx"></div></div>
+  <div id="stamp"></div>
+  <div id="holdWrap"><button id="hold">HOLD<br>TO RIP</button><div id="hint">hold to rip. let go before you cough.</div></div>
+</section>
+
+<!-- 2. walkthrough -->
+<section id="walk" class="screen">
+  <div id="walkBubble" class="on" style="position:absolute;z-index:6;left:50%;transform:translateX(-50%);width:min(92vw,400px);background:var(--cream);color:#111;border:2px solid;border-color:#fff #404040 #404040 #fff;box-shadow:1px 1px 0 #000,4px 6px 0 rgba(0,0,0,.4)">
+    <div class="tb" style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(90deg,var(--navy1),var(--navy2));color:#fff;font:700 12px Tahoma,Verdana,sans-serif;padding:3px 4px 3px 6px"><span>woogly.exe</span><b style="width:16px;height:14px;background:#c0c0c0;color:#000;border:1px solid;border-color:#fff #404040 #404040 #fff;font:700 10px/12px Tahoma,sans-serif;text-align:center">×</b></div>
+    <div class="tx" id="wtx" style="padding:12px 14px 14px;font:600 19px/1.3 Outfit,sans-serif;min-height:56px"></div>
+  </div>
+  <div class="phone"><img id="shot" alt="Podiums app"></div>
+  <img id="walkWiz" alt="">
+  <button id="next">Next</button>
+</section>
+
+<!-- 3. choose -->
+<section id="choose" class="screen">
+  <div class="h2 fade-in">Choose your side</div>
+  <div class="sub">What device are you rocking?</div>
+  <div class="cards">
+    <button class="pick" data-p="ios"><span>📱</span><div>iOS<small>Get the app</small></div></button>
+    <button class="pick" data-p="android"><span>🤖</span><div>Android<small>Join waitlist</small></div></button>
+  </div>
+</section>
+
+<section id="ios" class="screen">
+  <div class="icon"><img src="img/podiums-logo.png" alt="Podiums"></div>
+  <div class="h2">Ready to log your media?</div>
+  <div class="sub">woogly says go</div>
+  <a class="btn" id="appstore" href="https://apps.apple.com/us/app/podiums-rate-rank-discover/id6738963615" target="_blank" rel="noopener">Download Podiums</a>
+  <button class="ghost" data-back>Choose different platform</button>
+</section>
+
+<section id="android" class="screen">
+  <div class="h2">Join the Android Waitlist</div>
+  <div class="sub">We promise we're dropping it soon</div>
+  <form id="wl">
+    <label>📱 Phone Number<input id="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(555) 123-4567"></label>
+    <label>What kind of media do you enjoy? (optional)<textarea id="prefs" maxlength="500" placeholder="albums, movies, whatever woogly was smoking to..."></textarea></label>
+    <button class="btn" type="submit" id="wlBtn" style="max-width:none">Join Waitlist</button>
+    <button class="ghost" type="button" data-back>Choose different platform</button>
+    <div class="fine">By joining, you agree to receive texts from Podiums when Android launches.</div>
+  </form>
+</section>
+
+<button id="mute" aria-label="mute" style="display:block">🔇</button>
+<div id="soundPill">tap to interrupt his smoke break</div>
+<button id="master">⏭ skip</button>
+<div id="toast"></div>
+
+<script>
+(() => {
+// ================= config =================
+const APP_STORE = 'https://apps.apple.com/us/app/podiums-rate-rank-discover/id6738963615';
+const SB_URL = 'https://attgsypngmjowdjtjcgx.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF0dGdzeXBuZ21qb3dkanRqY2d4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3ODg4NzEsImV4cCI6MjA4MDM2NDg3MX0.p2Hz1M5zXPfaddzgim_mOljZr5NqPUuTw33CorVN10g';
+const TRACK_URL = ''; // set to an endpoint to collect funnel events (sendBeacon JSON)
+const Q = new URLSearchParams(location.search);
+const DRY = Q.has('dry'); // ?dry=1 -> waitlist form doesn't write to Supabase
+const SRC = Q.get('src') || 'woogly';
+
+const LINES = {
+  intro1:"Oh. Hey. I'm Woogly Boogly.",
+  intro2:"You weren't supposed to click that. This is my smoke break.",
+  intro3:"You think you can outsmoke me? Okay. Watch this.",
+  yourturn:"Your turn, little guy.",
+  r2pre:"Okay. That was luck. Watch this one.",
+  r2after:"Beat that. You can't.",
+  r3pre:"Fine. I'm taking the whole thing.",
+  r3ko:"I'm good. I'm good. Finish it.",
+  lose1:"You coughed. Embarrassing. Again.",
+  lose2:"That's not even a hit. Go again.",
+  lose3:"Weak. Do it again.",
+  roundwin:"Huh. Okay.",
+  win:"Okay. Okay. You win. You've earned the secret.",
+  walk1:"This is Podiums. You can catalogue and review music, movies, shows, books, video games. All in one place.",
+  walk2:"You're chill with me brotha, you can join. I'm going back to my smoke break.",
+  end:"Go download it. I'm going back to my smoke break.",
+};
+
+// ================= tracking =================
+const sid = Math.random().toString(36).slice(2,10);
+function track(ev, data={}){
+  const payload = {ev, sid, src:SRC, t:Date.now(), ...data};
+  try{ const k='wb_events'; const a=JSON.parse(localStorage.getItem(k)||'[]'); a.push(payload); localStorage.setItem(k, JSON.stringify(a.slice(-300))); }catch(e){}
+  if (TRACK_URL) { try{ navigator.sendBeacon(TRACK_URL, JSON.stringify(payload)); }catch(e){} }
+  if (Q.has('debug')) console.log('[track]', payload);
+}
+track('land', {ref: document.referrer || '', ua: navigator.userAgent.slice(0,120)});
+
+// ================= helpers =================
+const $ = s => document.querySelector(s);
+const PENDING = new Set();
+let unlockedResolve; const UNLOCKED = new Promise(r => unlockedResolve = r);
+const sleep = ms => new Promise(r => { const f=()=>{ clearTimeout(t); PENDING.delete(f); r(); }; const t=setTimeout(f, ms); PENDING.add(f); });
+function show(id){ document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id===id)); }
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.style.display='block'; clearTimeout(toast._t); toast._t=setTimeout(()=>t.style.display='none',3200); }
+
+// ================= sprites =================
+const RED = [0, 0.5, 1], BLINK = {0:0, 0.5:0.3, 1:0.5};
+function spr(pose, {m=0, r=0, b=null, l=0}={}){
+  const bl = b===null ? BLINK[r] : b;
+  return `img/wiz/${pose}_m${m}_b${bl}_r${r}_l${l}.webp`;
+}
+const ALL = [];
+for (const r of RED){ ALL.push(spr('chill',{r}), spr('chill',{r,m:0.5}), spr('chill',{r,b:1}), spr('hit',{r,l:1}), spr('exhale',{r,m:0.8}), spr('cough',{r,m:0.7,b:0.6})); }
+ALL.push(spr('ko',{r:1,b:1}), spr('present',{r:1}), spr('present',{r:1,m:0.5}), spr('shrug',{r:1,m:0.5}), 'img/app/profile.webp','img/app/3.webp');
+ALL.forEach(src => { const i=new Image(); i.src=src; });
+
+const wiz = $('#wiz');
+let red = 0, pose = 'chill', talking = false, blinkT = 0;
+function setPose(p){ pose = p; render(); }
+function render(mouthOpen=false){
+  if (pose==='chill') wiz.src = spr('chill',{r:red, m: mouthOpen?0.5:0, b: (!mouthOpen && blinkT>0) ? 1 : null});
+  else if (pose==='hit') wiz.src = spr('hit',{r:red,l:1});
+  else if (pose==='exhale') wiz.src = spr('exhale',{r:red,m:0.8});
+  else if (pose==='cough') wiz.src = spr('cough',{r:red,m:0.7,b:0.6});
+  else if (pose==='ko') wiz.src = spr('ko',{r:1,b:1});
+}
+// idle blink
+setInterval(() => { if (pose==='chill' && !talking){ blinkT=1; render(); setTimeout(()=>{blinkT=0; render();}, 140); } }, 3400);
+
+// ================= audio =================
+let AC=null, master, musicGain, sfxGain, voGain, analyser, muted=false;
+const VO = {};
+// download every voice line on page load (no tap needed); decoding happens on the first tap
+const VO_READY = {};
+try{
+  const DEC = new (window.OfflineAudioContext||window.webkitOfflineAudioContext)(1, 44100, 44100);
+  Object.keys(LINES).forEach(id => { VO_READY[id] = fetch(`vo/${id}.mp3`).then(r=>r.arrayBuffer()).then(a=>new Promise((res,rej)=>DEC.decodeAudioData(a,res,rej))).catch(()=>null); });
+}catch(e){ Object.keys(LINES).forEach(id => VO_READY[id] = Promise.resolve(null)); }
+let AC_RESUMED = Promise.resolve();
+async function initAudio(){
+  if (AC) return;
+  AC = new (window.AudioContext||window.webkitAudioContext)();
+  master = AC.createGain(); master.connect(AC.destination);
+  musicGain = AC.createGain(); musicGain.gain.value = 0.0; musicGain.connect(master);
+  sfxGain = AC.createGain(); sfxGain.gain.value = 0.9; sfxGain.connect(master);
+  voGain = AC.createGain(); voGain.gain.value = 1.0;
+  analyser = AC.createAnalyser(); analyser.fftSize = 512;
+  voGain.connect(analyser); analyser.connect(master);
+  // unlock iOS
+  const b = AC.createBuffer(1,1,22050), s = AC.createBufferSource(); s.buffer=b; s.connect(master); s.start(0);
+  Object.keys(LINES).forEach(id => {
+    VO[id] = VO_READY[id].then(buf => buf || fetch(`vo/${id}.mp3`).then(r=>r.arrayBuffer()).then(a=>new Promise((res,rej)=>AC.decodeAudioData(a,res,rej)))).catch(()=>null);
+  });
+  AC_RESUMED = AC.state==='suspended' ? AC.resume().catch(()=>{}) : Promise.resolve();
+  await AC_RESUMED;
+  startMusic();
+}
+function noiseBuf(sec=1){ const n=AC.createBuffer(1, AC.sampleRate*sec, AC.sampleRate); const d=n.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; return n; }
+let NOISE;
+function noise(dur, {type='lowpass', freq=1000, q=0.7, gain=0.3, attack=0.01, release=null, at=0}={}){
+  if (!AC) return; NOISE = NOISE || noiseBuf(2);
+  const t = AC.currentTime + at, s = AC.createBufferSource(); s.buffer = NOISE; s.loop = true;
+  const f = AC.createBiquadFilter(); f.type=type; f.frequency.value=freq; f.Q.value=q;
+  const g = AC.createGain(); g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(gain,t+attack); g.gain.exponentialRampToValueAtTime(0.0008, t+(release??dur));
+  s.connect(f); f.connect(g); g.connect(sfxGain); s.start(t, Math.random()); s.stop(t+(release??dur)+0.05);
+  return {f,g};
+}
+function blub(intensity){
+  if (!AC) return;
+  const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain(), f = AC.createBiquadFilter();
+  const base = 140 + Math.random()*160;
+  o.type='sine'; o.frequency.setValueAtTime(base,t); o.frequency.exponentialRampToValueAtTime(base*(2.2+Math.random()), t+0.07);
+  f.type='lowpass'; f.frequency.value=1100;
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.18+0.22*intensity,t+0.01); g.gain.exponentialRampToValueAtTime(0.001,t+0.09);
+  o.connect(f); f.connect(g); g.connect(sfxGain); o.start(t); o.stop(t+0.1);
+}
+let bubbleTimer=null, bubbleI=0;
+function bubbles(on){
+  clearTimeout(bubbleTimer);
+  if (!on) return;
+  const tick = () => { blub(bubbleI); bubbleTimer = setTimeout(tick, 120 - 85*bubbleI + Math.random()*40); };
+  tick();
+}
+function flick(){ noise(0.03,{type:'highpass',freq:3000,gain:0.4}); noise(0.4,{type:'bandpass',freq:1800,q:0.8,gain:0.12,attack:0.05,at:0.08}); }
+function exhaleSfx(dur=1.6, amt=1){ noise(dur,{type:'lowpass',freq:700+500*amt,gain:0.22*amt+0.05,attack:0.12}); }
+function coughSfx(n=3){
+  for (let i=0;i<n;i++){
+    const at = i*0.26 + Math.random()*0.05;
+    noise(0.16,{type:'bandpass',freq:420+Math.random()*120,q:1.2,gain:0.7,attack:0.005,at});
+    if (AC){ const t=AC.currentTime+at, o=AC.createOscillator(), g=AC.createGain(); o.type='triangle'; o.frequency.setValueAtTime(190,t); o.frequency.exponentialRampToValueAtTime(90,t+0.15); g.gain.setValueAtTime(0.35,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.16); o.connect(g); g.connect(sfxGain); o.start(t); o.stop(t+0.18); }
+  }
+}
+function thud(){ if(!AC) return; const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain(); o.frequency.setValueAtTime(110,t); o.frequency.exponentialRampToValueAtTime(38,t+0.35); g.gain.setValueAtTime(0.9,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.4); o.connect(g); g.connect(sfxGain); o.start(t); o.stop(t+0.42); noise(0.3,{freq:400,gain:0.4}); }
+
+// lo-fi loop: Fmaj7 Em7 Dm7 Cmaj7 @ 72bpm, crackle, soft kick
+function startMusic(){
+  const bpm=72, beat=60/bpm, bar=beat*4;
+  const chords=[[53,57,60,64],[52,55,59,62],[50,53,57,60],[48,52,55,59]];
+  const mtof=m=>440*Math.pow(2,(m-69)/12);
+  const lp = AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1300; lp.connect(musicGain);
+  let next = AC.currentTime+0.1, idx=0;
+  function sched(){
+    while (next < AC.currentTime + 1.5){
+      const ch = chords[idx%4];
+      ch.forEach((n,k) => {
+        const o=AC.createOscillator(), g=AC.createGain(); o.type= k%2?'triangle':'sine'; o.frequency.value=mtof(n+12); o.detune.value=(Math.random()-.5)*14;
+        g.gain.setValueAtTime(0,next+k*0.03); g.gain.linearRampToValueAtTime(0.07,next+0.08+k*0.03); g.gain.exponentialRampToValueAtTime(0.004,next+bar*0.98);
+        o.connect(g); g.connect(lp); o.start(next); o.stop(next+bar);
+      });
+      const bo=AC.createOscillator(), bg=AC.createGain(); bo.type='sine'; bo.frequency.value=mtof(ch[0]-12);
+      bg.gain.setValueAtTime(0.0001,next); bg.gain.linearRampToValueAtTime(0.16,next+0.04); bg.gain.exponentialRampToValueAtTime(0.002,next+bar*0.9); bo.connect(bg); bg.connect(musicGain); bo.start(next); bo.stop(next+bar);
+      for (const b of [0,2]){ const t=next+b*beat, o=AC.createOscillator(), g=AC.createGain(); o.frequency.setValueAtTime(120,t); o.frequency.exponentialRampToValueAtTime(45,t+0.18); g.gain.setValueAtTime(0.32,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.25); o.connect(g); g.connect(musicGain); o.start(t); o.stop(t+0.3); }
+      for (const b of [1,3]){ const t=next+b*beat; const s=AC.createBufferSource(); NOISE=NOISE||noiseBuf(2); s.buffer=NOISE; const f=AC.createBiquadFilter(); f.type='highpass'; f.frequency.value=5000; const g=AC.createGain(); g.gain.setValueAtTime(0.05,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.06); s.connect(f); f.connect(g); g.connect(musicGain); s.start(t,Math.random()); s.stop(t+0.07); }
+      for (let c=0;c<10;c++){ const t=next+Math.random()*bar; const s=AC.createBufferSource(); s.buffer=NOISE; const g=AC.createGain(); g.gain.setValueAtTime(0.03*Math.random(),t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.01); s.connect(g); g.connect(musicGain); s.start(t,Math.random()); s.stop(t+0.012); }
+      next += bar; idx++;
+    }
+    setTimeout(sched, 400);
+  }
+  sched();
+  musicGain.gain.linearRampToValueAtTime(0.55, AC.currentTime+2);
+}
+function duck(on){ if(!AC) return; musicGain.gain.setTargetAtTime(muted?0:(on?0.22:0.55), AC.currentTime, 0.15); }
+$('#mute').onclick = () => { muted=!muted; $('#mute').textContent = muted?'🔇':'🔊'; if(AC) master.gain.setTargetAtTime(muted?0:1, AC.currentTime, 0.05); };
+
+// ================= speech =================
+function typeInto(el, text, dur){
+  el.textContent=''; const t0=performance.now(); const tok=(el._tok=(el._tok||0)+1);
+  let done=false; const f=()=>{ done=true; PENDING.delete(f); }; PENDING.add(f);
+  return new Promise(res => { (function step(){ if (el._tok!==tok){ PENDING.delete(f); return res(); } const k=done?1:Math.min(1,(performance.now()-t0)/dur); el.textContent=text.slice(0, Math.ceil(text.length*k)); if(k<1) requestAnimationFrame(step); else { PENDING.delete(f); res(); } })(); });
+}
+let curSrc=null;
+async function say(id, opts={}){
+  const {el='#btx', wrap='#bubble', mouth=true, hold=500} = opts;
+  const text = LINES[id], box=$(wrap);
+  box.classList.add('on');
+  if (!AC){
+    // silent until the first tap; if they tap mid-line, restart it with voice
+    let flap=true; talking=true; (function f(){ if(!flap) return; if(mouth) mouthCb(Math.random()>0.5); setTimeout(f,90); })();
+    const r = await Promise.race([UNLOCKED.then(()=>'u'), Promise.all([typeInto($(el), text, text.length*48), sleep(text.length*55+300)]).then(()=>'d')]);
+    flap=false; talking=false; mouthCb(false);
+    if (r==='u'){ await sleep(150); return say(id, opts); }
+    await sleep(hold); return;
+  }
+  let buf = null; try{ buf = await Promise.race([VO[id] || VO_READY[id], sleep(2500).then(()=>null)]); await AC_RESUMED; }catch(e){}
+  const dur = buf ? buf.duration*1000 : Math.max(1200, text.length*55);
+  duck(true);
+  if (buf && AC){ const s=AC.createBufferSource(); s.buffer=buf; s.connect(voGain); s.start(); curSrc=s; if (Q.has('debug')) console.log('vo-start', id, Math.round(performance.now())); }
+  talking = true;
+  const data = new Uint8Array(analyser ? analyser.fftSize : 0);
+  let flapping = true;
+  (function flap(){
+    if (!flapping) return;
+    if (mouth && analyser){ analyser.getByteTimeDomainData(data); let sum=0; for (const v of data){ const x=(v-128)/128; sum+=x*x; } const rms=Math.sqrt(sum/data.length); mouthCb(rms>0.045); }
+    else if (mouth) mouthCb(Math.random()>0.5);
+    setTimeout(flap, 70);
+  })();
+  await Promise.all([typeInto($(el), text, dur*0.85), sleep(dur)]);
+  flapping=false; talking=false; mouthCb(false); duck(false);
+  await sleep(hold);
+}
+let mouthCb = open => { if (pose==='chill') render(open); };
+
+// ================= smoke particles =================
+const cv = $('#smoke'), cx = cv.getContext('2d');
+let W=0,H=0,DPR=Math.min(2, window.devicePixelRatio||1);
+function resize(){ W=innerWidth; H=innerHeight; cv.width=W*DPR; cv.height=H*DPR; cx.setTransform(DPR,0,0,DPR,0,0); }
+addEventListener('resize', resize); resize();
+const puff = document.createElement('canvas'); puff.width=puff.height=128;
+{ const p=puff.getContext('2d'), g=p.createRadialGradient(64,64,0,64,64,64); g.addColorStop(0,'rgba(235,240,235,.9)'); g.addColorStop(.5,'rgba(220,228,220,.35)'); g.addColorStop(1,'rgba(220,228,220,0)'); p.fillStyle=g; p.fillRect(0,0,128,128); }
+const P=[];
+function emit(x,y,{n=1,vx=0,vy=-30,spread=20,size=20,grow=30,life=3,alpha=.5}={}){
+  for(let i=0;i<n;i++) P.push({x:x+(Math.random()-.5)*6,y,vx:vx+(Math.random()-.5)*spread,vy:vy+(Math.random()-.5)*spread*0.5,s:size*(.7+Math.random()*.6),g:grow,life,age:0,a:alpha*(.6+Math.random()*.4),rot:Math.random()*6});
+}
+// anchor points (fractions of sprite box)
+const ANCH = { bongTop:[.70,.36], hitMouth:[.52,.43], exMouth:[.47,.43], coughMouth:[.45,.44], koMouth:[.5,.83] };
+function anchor(k){ const r=wiz.getBoundingClientRect(); const a=ANCH[k]; return [r.left+r.width*a[0], r.top+r.height*a[1]]; }
+let lastT=performance.now(), idleSmoke=true, holding=false, holdV=0;
+function frame(t){
+  const dt=Math.min(.05,(t-lastT)/1000); lastT=t;
+  if ($('#game').classList.contains('on')){
+    if (idleSmoke && pose==='chill' && Math.random()<dt*5){ const [x,y]=anchor('bongTop'); emit(x,y,{vy:-22,spread:10,size:6,grow:16,life:3.2,alpha:.28}); }
+    if (holding && Math.random()<dt*10){ emit(W*(.3+Math.random()*.4), H+10, {vy:-50-holdV, spread:30, size:16, grow:26, life:2.4, alpha:.10+holdV/500}); }
+  }
+  cx.clearRect(0,0,W,H);
+  for (let i=P.length-1;i>=0;i--){
+    const p=P[i]; p.age+=dt; if(p.age>p.life){P.splice(i,1);continue;}
+    p.x+=p.vx*dt + Math.sin((p.age+p.rot)*1.3)*8*dt; p.y+=p.vy*dt; p.vx*=0.985; p.vy*=0.992; p.s+=p.g*dt;
+    const k=p.age/p.life, a=p.a*(k<.15?k/.15:1-(k-.15)/.85);
+    cx.globalAlpha=Math.max(0,a); cx.drawImage(puff,p.x-p.s,p.y-p.s,p.s*2,p.s*2);
+  }
+  cx.globalAlpha=1;
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+function bigCloud(k, amt=1, dir=-1, alpha=.45){
+  const [x,y]=anchor(k);
+  for (let i=0;i<Math.round(26*amt);i++) setTimeout(()=>emit(x,y,{vx:dir*(30+Math.random()*90)*amt,vy:-30-Math.random()*70,spread:60,size:16,grow:60+60*amt,life:4+Math.random()*2,alpha}), i*45);
+}
+
+// ================= stoned-ness =================
+let high=0;
+function setHigh(v){
+  high=v;
+  $('#haze').style.opacity = (0.12 + v*0.45).toFixed(2);
+  $('#stage').style.filter = `blur(${(v*0.9).toFixed(2)}px) saturate(${(1+v*.5).toFixed(2)}) hue-rotate(${Math.round(v*12)}deg)`;
+  $('#stage').classList.toggle('wobble', v>0.35);
+}
+
+// ================= HUD =================
+function setBar(which, v){ $(which==='his'?'#hisFill':'#youFill').style.width=Math.min(100,v)+'%'; $(which==='his'?'#hisNum':'#youNum').textContent=Math.round(v); }
+function animBar(which, to, ms){ const from=0, t0=performance.now(); let done=false; const f=()=>{done=true;PENDING.delete(f);}; PENDING.add(f); return new Promise(res=>{ (function step(){ const k=done?1:Math.min(1,(performance.now()-t0)/ms); const e=1-Math.pow(1-k,2); setBar(which, from+(to-from)*e); if(k<1) requestAnimationFrame(step); else res(); })(); }); }
+function setTick(v){ const t=$('#tick'); t.style.left=`calc(${v}% - 1px)`; t.style.opacity=v?1:0; }
+const TIERS=[[0,'a little sip','#bbb'],[25,'baby hit','#ddd'],[45,'decent','#c9ffcf'],[60,'BIG RIP','#7dff8a'],[75,'LUNG BUSTER','#ffd34d'],[86,'ur gonna die','#ff4d4d']];
+let tierIdx=-1;
+function setTier(v){ let i=0; TIERS.forEach((t,k)=>{ if(v>=t[0]) i=k; }); if(i===tierIdx) return; tierIdx=i; const el=$('#tier'); el.textContent=TIERS[i][1]; el.style.color=TIERS[i][2]; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+function clearTier(){ tierIdx=-1; const el=$('#tier'); el.classList.remove('pop'); el.style.opacity=0; }
+function setDots(round, won){ document.querySelectorAll('#dots i').forEach((d,i)=>{ d.className = i<won ? 'won' : (i===round?'cur':''); }); }
+function stamp(html, color='#fff'){ const s=$('#stamp'); s.innerHTML=html; s.style.color=color; s.classList.remove('pop'); void s.offsetWidth; s.classList.add('pop'); return sleep(1300); }
+function shake(){ const s=$('#stageWrap'); s.classList.remove('shake'); void s.offsetWidth; s.classList.add('shake'); if (navigator.vibrate) navigator.vibrate([60,40,60]); }
+
+// ================= wizard turn =================
+async function wizardHits(target, round){
+  setPose('hit'); flick(); await sleep(250);
+  bubbleI = 0.3; bubbles(true); $('#hisTube').classList.add('boil');
+  const ms = 900 + target*22;
+  const iv = setInterval(()=>{ bubbleI=Math.min(1,bubbleI+0.06); }, 100);
+  await animBar('his', target, ms);
+  clearInterval(iv); bubbles(false); $('#hisTube').classList.remove('boil');
+  if (round===2){ return; }
+  await sleep(250);
+  setPose('exhale'); exhaleSfx(2.2, target/100); bigCloud('exMouth', target/90, -1);
+  await sleep(1700);
+  setPose('chill');
+}
+
+// ================= player turn =================
+let resolveTurn=null, threshold=95, holdStart=0, raf=0;
+let curTarget=0;
+function playerTurn(target){
+  curTarget=target; setBar('you',0); setTick(target);
+  threshold = 90 + Math.random()*9;
+  $('#holdWrap').classList.add('on');
+  return new Promise(res => resolveTurn = res);
+}
+const holdBtn = $('#hold');
+function down(e){
+  e.preventDefault(); if (!resolveTurn || holding) return;
+  holding=true; holdV=0; holdBtn.classList.add('down'); flick();
+  track('hold_start', {round: curRound});
+  bubbleI=0.15; bubbles(true); $('#youTube').classList.add('boil'); $('#tier').style.opacity=''; tierIdx=-1;
+  let last=performance.now();
+  (function grow(){
+    if(!holding) return;
+    const now=performance.now(), dt=(now-last)/1000; last=now;
+    holdV += (12 + holdV*0.35) * dt;
+    bubbleI = Math.min(1, holdV/100);
+    const wob = holdV>60 ? Math.sin(now/45)*(holdV-60)*0.06 : 0;
+    setBar('you', Math.min(100, holdV+wob)); setTier(holdV); $('#youTube').classList.toggle('shaky', holdV>80);
+    setHigh(Math.min(1, baseHigh + holdV/400));
+    if (holdV >= threshold){ finish(true); return; }
+    raf=requestAnimationFrame(grow);
+  })();
+}
+function up(e){ if (holding) finish(false); }
+function finish(coughed){
+  holding=false; cancelAnimationFrame(raf); bubbles(false); holdBtn.classList.remove('down'); $('#youTube').classList.remove('boil','shaky'); setTimeout(clearTier, 900);
+  $('#holdWrap').classList.remove('on');
+  const v = Math.round(Math.min(holdV, 100));
+  const r = resolveTurn; resolveTurn=null; r({v, coughed});
+}
+holdBtn.addEventListener('pointerdown', down);
+addEventListener('pointerup', up); addEventListener('pointercancel', up);
+holdBtn.addEventListener('contextmenu', e=>e.preventDefault());
+
+// ================= the run =================
+const TARGETS=[55, 70, 60];
+let curRound=0, baseHigh=0, roundsWon=0, loseIdx=0;
+async function runGame(startRound=0){
+  show('game'); $('#mute').style.display='block';
+  red = RED[Math.min(2,startRound)]; setPose('chill'); setHigh(0); baseHigh=0;
+  await sleep(500);
+  if (startRound===0){
+    // until the first tap: he rips the bowl on a loop and gets higher every time
+    let looping = true, loops = 0;
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    UNLOCKED.then(() => { looping = false; });
+    (async () => {
+      await wait(700);
+      while (looping){
+        setPose('hit'); await wait(1700); if (!looping) break;
+        setPose('exhale'); bigCloud('exMouth', 0.5 + Math.min(0.3, loops*0.06), -1, 0.2); await wait(1600); if (!looping) break;
+        loops++; red = loops>=4 ? 1 : loops>=2 ? 0.5 : 0;
+        setPose('chill'); setHigh(Math.min(0.4, loops*0.07)); await wait(1100);
+      }
+    })();
+    await UNLOCKED;
+    setPose('chill'); baseHigh = Math.min(0.3, high); setHigh(baseHigh);
+    await say('intro2'); await say('intro3', {hold:200});
+    $('#bubble').classList.remove('on');
+  }
+  $('#hud').classList.add('on');
+  for (curRound=startRound; curRound<3; curRound++){
+    roundsWon = curRound; setDots(curRound, roundsWon);
+    red = Math.max(RED[curRound], red); render();
+    setBar('his',0); setBar('you',0); setTick(0);
+    track('round_start', {round:curRound});
+    if (curRound===1){ await say('r2pre', {hold:150}); $('#bubble').classList.remove('on'); }
+    if (curRound===2){ await say('r3pre', {hold:150}); $('#bubble').classList.remove('on'); }
+    if (curRound>0) await stamp(curRound===2?'FINAL ROUND':'ROUND 2');
+    await wizardHits(curRound===2 ? 99 : TARGETS[curRound], curRound);
+    if (curRound===2){
+      // he greens out
+      setPose('cough'); coughSfx(4); shake(); bigCloud('coughMouth', 1.2, 1); await sleep(1300);
+      setPose('ko'); thud(); shake(); await sleep(700);
+      mouthCb = ()=>{};
+      await say('r3ko', {mouth:false, hold:150});
+      setBar('his', 0); $('#hisNum').textContent='KO';
+      await stamp('FINISH IT<small>beat 60 without coughing</small>', 'var(--leaf)');
+    } else {
+      await say(curRound===0?'yourturn':'r2after', {hold:100});
+    }
+    // player loop until beaten
+    const target = TARGETS[curRound];
+    while (true){
+      $('#hint').textContent = curRound===0 && loseIdx===0 ? 'hold to rip. let go before you cough.' : `beat ${target}. don't cough.`;
+      const {v, coughed} = await playerTurn(target);
+      $('#bubble').classList.remove('on');
+      if (coughed){
+        track('cough', {round:curRound, v});
+        coughSfx(3); shake(); for (let i=0;i<24;i++) setTimeout(()=>emit(W*(.25+Math.random()*.5), H+10, {vy:-90-Math.random()*160, spread:200, size:18, grow:70, life:3, alpha:.38}), i*25);
+        setHigh(Math.min(1, baseHigh+0.15));
+        await stamp(`COUGHED<small>at ${v}</small>`, 'var(--danger)');
+        if (pose!=='ko') setPose('chill');
+        await say(['lose1','lose3'][loseIdx++%2], {hold:100});
+        continue;
+      }
+      exhaleSfx(1.8, v/100); for (let i=0;i<Math.round(v/3);i++) setTimeout(()=>emit(W*(.2+Math.random()*.6), H+20, {vy:-150-Math.random()*120, spread:90, size:18, grow:55, life:3.6, alpha:.32}), i*30);
+      if (v > target){
+        track('round_win', {round:curRound, v, target});
+        roundsWon = curRound+1; setDots(curRound+1, roundsWon);
+        baseHigh = Math.min(1, baseHigh + 0.3); setHigh(baseHigh);
+        await stamp(`${v} vs ${target}<small>${curRound===2?'woogly is down':'you win the round'}</small>`, 'var(--leaf)');
+        if (curRound<2) await say('roundwin', {hold:200});
+        break;
+      } else {
+        track('round_short', {round:curRound, v, target});
+        await stamp(`${v}<small>need more than ${target}</small>`);
+        await say('lose2', {hold:100});
+      }
+    }
+  }
+  // win
+  $('#hud').classList.remove('on');
+  track('win');
+  await say('win', {mouth:false, hold:300});
+  await walkthrough();
+}
+
+// ================= walkthrough =================
+async function walkthrough(){
+  show('walk'); track('walk_start');
+  const ww=$('#walkWiz'); ww.src=spr('present',{r:1});
+  mouthCb = open => { ww.src = spr('present',{r:1, m: open?0.5:0}); };
+  $('#shot').src = 'img/app/profile.webp';
+  $('#next').style.visibility='hidden';
+  await say('walk1', {el:'#wtx', wrap:'#walkBubble', hold:0});
+  $('#next').style.visibility='visible'; $('#next').textContent='Next';
+  await new Promise(r => $('#next').onclick = r);
+  track('walk_step', {i:0});
+  await outro();
+}
+
+// back on the bong, says bye to the camera, walks off
+async function outro(){
+  show('game'); $('#hud').classList.remove('on'); $('#holdWrap').classList.remove('on');
+  red = 1; wiz.style.transform=''; setPose('chill'); setHigh(0.25);
+  mouthCb = open => { if (pose==='chill') render(open); };
+  await sleep(400);
+  await say('walk2', {hold:250});
+  $('#bubble').classList.remove('on');
+  track('walk_step', {i:1});
+  await new Promise(res => {
+    const t0=performance.now(), D=2600; let step=-1;
+    (function f(now){
+      const k=Math.min(1,(now-t0)/D), ph=(now-t0)/1000*8.5;
+      const x = k*k*110, y=-Math.abs(Math.sin(ph))*12, r=Math.sin(ph)*3;
+      wiz.style.transform=`translateX(calc(-50% + ${x}vw)) translateY(${y}px) rotate(${r}deg)`;
+      const st=Math.floor(ph/Math.PI); if (st!==step){ step=st; if(AC){ noise(0.06,{freq:300,gain:0.18}); } }
+      if (k<1) requestAnimationFrame(f); else res();
+    })(t0);
+  });
+  await sleep(300);
+  toChooser();
+}
+
+// ================= chooser / download =================
+let endSaid=false;
+function toChooser(){
+  show('choose'); track('choose');
+}
+document.querySelectorAll('.pick').forEach(b => b.onclick = () => { track('pick', {p:b.dataset.p}); show(b.dataset.p); });
+document.querySelectorAll('[data-back]').forEach(b => b.onclick = () => show('choose'));
+$('#appstore').addEventListener('click', () => track('appstore_click'));
+$('#wl').addEventListener('submit', async e => {
+  e.preventDefault();
+  const raw = $('#phone').value, digits = raw.replace(/[^\d]/g,'');
+  if (digits.length < 7) return toast('Please enter a valid phone number.');
+  const phone = digits.length===10 ? '+1'+digits : (raw.trim().startsWith('+') ? '+'+digits : '+'+digits);
+  const prefs = `[${SRC}] ` + ($('#prefs').value.trim() || 'No preferences provided');
+  $('#wlBtn').disabled = true; $('#wlBtn').textContent = 'Joining...';
+  track('waitlist_submit');
+  try{
+    if (DRY){ await sleep(500); console.log('DRY waitlist', {phone, prefs}); }
+    else {
+      const r = await fetch(`${SB_URL}/rest/v1/invitation_requests`, {method:'POST', headers:{apikey:SB_KEY, Authorization:'Bearer '+SB_KEY, 'Content-Type':'application/json', Prefer:'return=minimal'}, body: JSON.stringify({phone_number:phone, platform:'android', preferences:prefs})});
+      if (!r.ok){ const t=await r.text(); if (t.includes('23505')) { toast("Already on the list!"); } else throw new Error(t); }
+    }
+    track('waitlist_ok');
+    $('#wl').innerHTML = '<div class="h2" style="text-align:center">you\'re on the list</div><div class="sub" style="text-align:center;margin-top:4px">woogly will text you. probably.</div>';
+  }catch(err){ console.error(err); toast('Something went wrong. Try again.'); $('#wlBtn').disabled=false; $('#wlBtn').textContent='Join Waitlist'; }
+});
+
+// ================= start =================
+function unlock(){
+  if (Q.has('debug')) console.log('tap', Math.round(performance.now()));
+  document.removeEventListener('pointerdown', unlock, true);
+  initAudio(); unlockedResolve(); const p=$('#soundPill'); if (p) p.remove(); $('#mute').textContent = muted?'🔇':'🔊';
+}
+document.addEventListener('pointerdown', unlock, true);
+// master skip (testing): ?master=1
+if (Q.has('master')) $('#master').style.display='block';
+$('#master').addEventListener('click', e => {
+  e.stopPropagation();
+  if (resolveTurn){ holdV = curTarget + 8; finish(false); return; }
+  if ($('#walk').classList.contains('on') && getComputedStyle($('#next')).visibility==='visible'){ $('#next').click(); return; }
+  if ($('#choose').classList.contains('on')) return;
+  try{ if (curSrc) curSrc.stop(); }catch(_){}
+  [...PENDING].forEach(f => f());
+});
+if (Q.has('walk')) walkthrough();
+else if (Q.has('end')) toChooser();
+else runGame(Math.min(2, parseInt(Q.get('r')||'0',10)||0));
+})();
+</script>
+</body>
+</html>
