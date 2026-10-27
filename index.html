@@ -7,6 +7,15 @@
 <meta name="description" content="Woogly Boogly is on his smoke break. Don't click." />
 <meta property="og:title" content="don't click this" />
 <meta property="og:description" content="woogly boogly is on his smoke break." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://joinpodiums.com/" />
+<meta property="og:image" content="https://joinpodiums.com/og.jpg" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="Woogly Boogly next to his bong" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="don't click this" />
+<meta name="twitter:image" content="https://joinpodiums.com/og.jpg" />
 <meta name="theme-color" content="#000000" />
 <link rel="icon" href="favicon.png" type="image/png" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -193,7 +202,7 @@ textarea{height:84px;padding:12px 14px;resize:none}
 const APP_STORE = 'https://apps.apple.com/us/app/podiums-rate-rank-discover/id6738963615';
 const SB_URL = 'https://attgsypngmjowdjtjcgx.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF0dGdzeXBuZ21qb3dkanRqY2d4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ3ODg4NzEsImV4cCI6MjA4MDM2NDg3MX0.p2Hz1M5zXPfaddzgim_mOljZr5NqPUuTw33CorVN10g';
-const TRACK_URL = ''; // set to an endpoint to collect funnel events (sendBeacon JSON)
+const TRACK_URL = /podiumsugc\.com$/.test(location.hostname) ? '/wooglyboogly/t' : /joinpodiums\.(com|lovable\.app)$/.test(location.hostname) ? 'https://podiumsugc.com/wooglyboogly/t' : ''; // joinpodiums.com = Lovable, beacons cross-origin // funnel events → Cloudflare D1 (see cf/src/index.js)
 const Q = new URLSearchParams(location.search);
 const DRY = Q.has('dry'); // ?dry=1 -> waitlist form doesn't write to Supabase
 const SRC = Q.get('src') || 'woogly';
@@ -220,9 +229,9 @@ const LINES = {
 // ================= tracking =================
 const sid = Math.random().toString(36).slice(2,10);
 function track(ev, data={}){
-  const payload = {ev, sid, src:SRC, t:Date.now(), ...data};
+  const payload = {ev, sid, src:SRC, t:Date.now(), test: (Q.has('master')||Q.has('dry')||Q.has('debug')) ? 1 : 0, ...data};
   try{ const k='wb_events'; const a=JSON.parse(localStorage.getItem(k)||'[]'); a.push(payload); localStorage.setItem(k, JSON.stringify(a.slice(-300))); }catch(e){}
-  if (TRACK_URL) { try{ navigator.sendBeacon(TRACK_URL, JSON.stringify(payload)); }catch(e){} }
+  if (TRACK_URL) { const b=JSON.stringify(payload); let ok=false; try{ ok=navigator.sendBeacon(TRACK_URL, b); }catch(e){} if(!ok){ try{ fetch(TRACK_URL,{method:'POST',body:b,keepalive:true}); }catch(e){} } }
   if (Q.has('debug')) console.log('[track]', payload);
 }
 track('land', {ref: document.referrer || '', ua: navigator.userAgent.slice(0,120)});
@@ -283,7 +292,8 @@ async function initAudio(){
   Object.keys(LINES).forEach(id => {
     VO[id] = VO_READY[id].then(buf => buf || fetch(`vo/${id}.mp3`).then(r=>r.arrayBuffer()).then(a=>new Promise((res,rej)=>AC.decodeAudioData(a,res,rej)))).catch(()=>null);
   });
-  AC_RESUMED = AC.state==='suspended' ? AC.resume().catch(()=>{}) : Promise.resolve();
+  // iOS can leave resume() pending forever if it wasn't a valid gesture, so never wait on it for long
+  AC_RESUMED = AC.state==='suspended' ? Promise.race([AC.resume().catch(()=>{}), new Promise(r=>setTimeout(r,800))]) : Promise.resolve();
   await AC_RESUMED;
   startMusic();
 }
@@ -653,12 +663,24 @@ $('#wl').addEventListener('submit', async e => {
 });
 
 // ================= start =================
+// iOS Safari only lets audio start on touchend/click (not touchstart/pointerdown),
+// so keep trying on every gesture until the context is actually running.
+// iOS silent switch: mark this page's audio as media playback so it plays with the ringer off
+try{ if (navigator.audioSession) navigator.audioSession.type = 'playback'; }catch(e){}
+// older iOS / in-app browsers: a looping silent <audio> started on a tap does the same
+const silentEl = new Audio('vo/silence.mp3'); silentEl.loop = true; silentEl.setAttribute('playsinline',''); silentEl.preload='auto';
+let silentOn=false;
+const GESTURES=['pointerdown','touchend','click','keydown'];
+let started=false;
 function unlock(){
   if (Q.has('debug')) console.log('tap', Math.round(performance.now()));
-  document.removeEventListener('pointerdown', unlock, true);
-  initAudio(); unlockedResolve(); const p=$('#soundPill'); if (p) p.remove(); $('#mute').textContent = muted?'🔇':'🔊';
+  if (!silentOn){ const pr=silentEl.play(); if (pr && pr.then) pr.then(()=>{ silentOn=true; }).catch(()=>{}); }
+  if (!AC) initAudio(); else if (AC.state!=='running') AC.resume().catch(()=>{});
+  if (AC && AC.state==='suspended'){ try{ const b=AC.createBuffer(1,1,22050), s=AC.createBufferSource(); s.buffer=b; s.connect(AC.destination); s.start(0); }catch(e){} }
+  if (!started){ started=true; track('tap'); unlockedResolve(); const p=$('#soundPill'); if (p) p.remove(); $('#mute').textContent = muted?'🔇':'🔊'; }
+  if (AC && AC.state==='running') GESTURES.forEach(g=>document.removeEventListener(g, unlock, true));
 }
-document.addEventListener('pointerdown', unlock, true);
+GESTURES.forEach(g=>document.addEventListener(g, unlock, true));
 // master skip (testing): ?master=1
 if (Q.has('master')) $('#master').style.display='block';
 $('#master').addEventListener('click', e => {
